@@ -1,3 +1,3 @@
-# Template Mod
-
-Edit about.md to change this
+FNF IN GD!!!
+Friday night funkin' in Geometry dash.
+MULTIPLAYER IN FNF IN GD!!!!!!!!!!!
