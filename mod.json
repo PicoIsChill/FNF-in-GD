@@ -12,6 +12,14 @@
 	"developer": "PicoIsChill",
 	"description": "Friday Night Funkin' In Geometry Dash",
 	"dependencies": {
-		"geode.node-ids": ">=v1.23.3"
-	}
+		"id": "geode.globed",
+		"version": ">=1.0.0",
+		"importance": "required"
+	},
+	{
+	   "id": "geode.globed",
+	   "version": ">=1.0.0",
+	   "importance": "required"
+		}
+	]
 }
