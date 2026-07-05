@@ -1,100 +1,40 @@
-/**
- * Include the Geode headers.
- */
 #include <Geode/Geode.hpp>
+#include <Geode/modify/PlayLayer.hpp>
+#include <geode.globed/api.hpp>
 
-/**
- * Brings cocos2d and all Geode namespaces to the current scope.
- */
 using namespace geode::prelude;
 
-/**
- * `$modify` lets you extend and modify GD's classes.
- * To hook a function in Geode, simply $modify the class
- * and write a new function definition with the signature of
- * the function you want to hook.
- *
- * Here we use the overloaded `$modify` macro to set our own class name,
- * so that we can use it for button callbacks.
- *
- * Notice the header being included, you *must* include the header for
- * the class you are modifying, or you will get a compile error.
- *
- * Another way you could do this is like this:
- *
- * struct MyMenuLayer : Modify<MyMenuLayer, MenuLayer> {};
- */
-#include <Geode/modify/MenuLayer.hpp>
-class $modify(MyMenuLayer, MenuLayer) {
-	/**
-	 * Typically classes in GD are initialized using the `init` function, (though not always!),
-	 * so here we use it to add our own button to the bottom menu.
-	 *
-	 * Note that for all hooks, your signature has to *match exactly*,
-	 * `void init()` would not place a hook!
-	*/
-	bool init() {
-		/**
-		 * We call the original init function so that the
-		 * original class is properly initialized.
-		 */
-		if (!MenuLayer::init()) {
-			return false;
-		}
+// Перехватываем игровой уровень Geometry Dash 2.2
+class $modify(FNFPlayLayer, PlayLayer) {
+    
+    // Функция отслеживает нажатия кнопок
+    void pushButton(PlayerButton button, bool isPlayer2) {
+        PlayLayer::pushButton(button, isPlayer2);
+        
+        // Мапим кнопки под стрелки FNF (0 = Влево, 1 = Вниз, 2 = Вверх, 3 = Вправо)
+        int arrowIndex = -1;
+        if (button == PlayerButton::Left) arrowIndex = 0;
+        if (button == PlayerButton::Jump) arrowIndex = 2; // Прыжок назначен на стрелку Вверх
+        
+        if (arrowIndex != -1) {
+            // Отправляем пакет с нажатой стрелкой в сеть через Globed
+            std::string networkPacket = "fnf_press_" + std::to_string(arrowIndex);
+            GlobedAPI::sendDataToAll(networkPacket);
+        }
+    }
+};
 
-		/**
-		 * You can use methods from the `geode::log` namespace to log messages to the console,
-		 * being useful for debugging and such. See this page for more info about logging:
-		 * https://docs.geode-sdk.org/tutorials/logging
-		*/
-		log::debug("Hello from my MenuLayer::init hook! This layer has {} children.", this->getChildrenCount());
-
-		/**
-		 * See this page for more info about buttons
-		 * https://docs.geode-sdk.org/tutorials/buttons
-		*/
-		auto myButton = CCMenuItemSpriteExtra::create(
-			CCSprite::createWithSpriteFrameName("GJ_likeBtn_001.png"),
-			this,
-			/**
-			 * Here we use the name we set earlier for our modify class.
-			*/
-			menu_selector(MyMenuLayer::onMyButton)
-		);
-
-		/**
-		 * Here we access the `bottom-menu` node by its ID, and add our button to it.
-		 * Node IDs are a Geode feature, see this page for more info about it:
-		 * https://docs.geode-sdk.org/tutorials/nodetree
-		*/
-		auto menu = this->getChildByID("bottom-menu");
-		menu->addChild(myButton);
-
-		/**
-		 * The `_spr` string literal operator just prefixes the string with
-		 * your mod id followed by a slash. This is good practice for setting your own node ids.
-		*/
-		myButton->setID("my-button"_spr);
-
-		/**
-		 * We update the layout of the menu to ensure that our button is properly placed.
-		 * This is yet another Geode feature, see this page for more info about it:
-		 * https://docs.geode-sdk.org/tutorials/layouts
-		*/
-		menu->updateLayout();
-
-		/**
-		 * We return `true` to indicate that the class was properly initialized.
-		 */
-		return true;
-	}
-
-	/**
-	 * This is the callback function for the button we created earlier.
-	 * The signature for button callbacks must always be the same,
-	 * return type `void` and taking a `CCObject*`.
-	*/
-	void onMyButton(CCObject*) {
-		FLAlertLayer::create("Geode", "Hello from my custom mod!", "OK")->show();
-	}
+// Функция-приемник сетевых данных от второго игрока
+class FNFNetworkHandler {
+public:
+    void onReceiveNetworkData(std::string message) {
+        // Проверяем, что пакет прилетел от нашего мода
+        if (message.rfind("fnf_press_", 0) == 0) {
+            // Извлекаем индекс стрелки, которую нажал второй игрок
+            int opponentArrow = std::stoi(message.substr(10));
+            
+            // Здесь будет срабатывать анимация для иконки оппонента
+            log::info("Оппонент нажал стрелку: {}", opponentArrow);
+        }
+    }
 };
